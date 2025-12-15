@@ -1,16 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 from typing import List
-import uuid
 
 from database.connection import get_session
 from database.books import (
     get_all_books, get_book_by_id, search_books,
-    get_user_library, add_book_to_user_library,
+    add_book_to_user_library, get_user_library_with_details,
     get_user_book, update_user_book, remove_book_from_user_library,
     get_user_read_books, get_user_unread_books
 )
-from models.books import BookResponse
+from models.books import BookResponse, UserBookCreate, UserBookUpdate
 
 router = APIRouter(prefix="/user", tags=["user"])
 
@@ -50,23 +49,23 @@ def search_books_user(
 
 @router.get("/library")
 def get_my_library(
-        user_id: str = Query(..., description="ID пользователя"),
+        username: str,
         session: Session = Depends(get_session)
 ):
-    return get_user_library(session, user_id)
+    return get_user_library_with_details(session, username)
 
 
-@router.post("/library/{book_id}")
+@router.post("/library")
 def add_to_my_library(
-        book_id: int,
-        user_id: str = Query(..., description="ID пользователя"),
+        user_book_create: UserBookCreate,
+        username: str,
         session: Session = Depends(get_session)
 ):
-    user_book = add_book_to_user_library(session, user_id, book_id)
+    user_book = add_book_to_user_library(session, username, user_book_create)
     if not user_book:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Книга с ID {book_id} не найдена"
+            detail=f"Книга с ID {user_book_create.book_id} не найдена"
         )
 
     return user_book
@@ -75,10 +74,12 @@ def add_to_my_library(
 @router.patch("/library/{book_id}/read")
 def mark_book_as_read(
         book_id: int,
-        user_id: str = Query(..., description="ID пользователя"),
+        username: str,
         session: Session = Depends(get_session)
 ):
-    user_book = update_user_book(session, user_id, book_id, is_read=True)
+    user_book_update = UserBookUpdate(is_read=True)
+    user_book = update_user_book(session, username, book_id, user_book_update)
+
     if not user_book:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -91,10 +92,12 @@ def mark_book_as_read(
 @router.patch("/library/{book_id}/unread")
 def mark_book_as_unread(
         book_id: int,
-        user_id: str = Query(..., description="ID пользователя"),
+        username: str,
         session: Session = Depends(get_session)
 ):
-    user_book = update_user_book(session, user_id, book_id, is_read=False)
+    user_book_update = UserBookUpdate(is_read=False)
+    user_book = update_user_book(session, username, book_id, user_book_update)
+
     if not user_book:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -107,10 +110,10 @@ def mark_book_as_unread(
 @router.delete("/library/{book_id}")
 def remove_from_my_library(
         book_id: int,
-        user_id: str = Query(..., description="ID пользователя"),
+        username: str,
         session: Session = Depends(get_session)
 ):
-    success = remove_book_from_user_library(user_id, book_id)
+    success = remove_book_from_user_library(session, username, book_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -122,15 +125,15 @@ def remove_from_my_library(
 
 @router.get("/library/read")
 def get_my_read_books(
-        user_id: str = Query(..., description="ID пользователя"),
+        username: str,
         session: Session = Depends(get_session)
 ):
-    return get_user_read_books(session, user_id)
+    return get_user_read_books(session, username)
 
 
 @router.get("/library/unread")
 def get_my_unread_books(
-        user_id: str = Query(..., description="ID пользователя"),
+        username: str,
         session: Session = Depends(get_session)
 ):
-    return get_user_unread_books(session, user_id)
+    return get_user_unread_books(session, username)

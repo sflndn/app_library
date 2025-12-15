@@ -1,9 +1,8 @@
 from sqlmodel import Session, select
 from typing import Optional, List
-from models.books import Book, BookCreate, BookUpdate
 from datetime import datetime
+from models.books import Book, BookCreate, BookUpdate, User, UserBook, UserBookCreate, UserBookUpdate
 
-user_libraries = {}
 
 def create_book(session: Session, book_create: BookCreate) -> Book:
     book = Book(**book_create.dict())
@@ -68,124 +67,157 @@ def search_books(session: Session, title: Optional[str] = None,
     return session.exec(statement).all()
 
 
-def get_user_library(session: Session, user_id: str) -> List[dict]:
-    if user_id not in user_libraries:
-        user_libraries[user_id] = []
+def get_or_create_user(session: Session, username: str) -> User:
+    statement = select(User).where(User.username == username)
+    user = session.exec(statement).first()
 
-    library_with_details = []
-    for user_book in user_libraries[user_id]:
-        book = get_book_by_id(session, user_book["book_id"])
-        if book:
-            book_dict = book.dict()
-            book_dict.update(user_book)
-            library_with_details.append(book_dict)
+    if not user:
+        user = User(username=username)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
 
-    return library_with_details
+    return user
 
 
-def add_book_to_user_library(session: Session, user_id: str, book_id: int) -> Optional[dict]:
-    book = get_book_by_id(session, book_id)
+def get_user_by_id(session: Session, user_id: int) -> Optional[User]:
+    return session.get(User, user_id)
+
+
+def get_user_by_username(session: Session, username: str) -> Optional[User]:
+    statement = select(User).where(User.username == username)
+    return session.exec(statement).first()
+
+
+def add_book_to_user_library(session: Session, username: str, user_book_create: UserBookCreate) -> Optional[UserBook]:
+    user = get_or_create_user(session, username)
+
+    book = get_book_by_id(session, user_book_create.book_id)
     if not book:
         return None
 
-    if user_id not in user_libraries:
-        user_libraries[user_id] = []
+    statement = select(UserBook).where(
+        (UserBook.user_id == user.id) &
+        (UserBook.book_id == user_book_create.book_id)
+    )
+    existing = session.exec(statement).first()
 
-    for book_entry in user_libraries[user_id]:
-        if book_entry["book_id"] == book_id:
-            return book_entry
+    if existing:
+        return existing
 
-    user_book = {
-        "book_id": book_id,
-        "is_read": False,
-        "rating": None,
-        "notes": None
-    }
+    user_book = UserBook(
+        user_id=user.id,
+        **user_book_create.dict()
+    )
 
-    user_libraries[user_id].append(user_book)
+    session.add(user_book)
+    session.commit()
+    session.refresh(user_book)
 
-    book_dict = book.dict()
-    book_dict.update(user_book)
-    return book_dict
+    return user_book
 
 
-def get_user_book(session: Session, user_id: str, book_id: int) -> Optional[dict]:
-    if user_id not in user_libraries:
+def get_user_library(session: Session, username: str) -> List[UserBook]:
+    user = get_user_by_username(session, username)
+    if not user:
+        return []
+
+    statement = select(UserBook).where(UserBook.user_id == user.id)
+    user_books = session.exec(statement).all()
+
+    return user_books
+
+
+def get_user_book(session: Session, username: str, book_id: int) -> Optional[UserBook]:
+    user = get_user_by_username(session, username)
+    if not user:
         return None
 
-    for book_entry in user_libraries[user_id]:
-        if book_entry["book_id"] == book_id:
-            book = get_book_by_id(session, book_id)
-            if book:
-                book_dict = book.dict()
-                book_dict.update(book_entry)
-                return book_dict
-
-    return None
+    statement = select(UserBook).where(
+        (UserBook.user_id == user.id) &
+        (UserBook.book_id == book_id)
+    )
+    return session.exec(statement).first()
 
 
-def update_user_book(session: Session, user_id: str, book_id: int, is_read: Optional[bool] = None,
-                     rating: Optional[int] = None, notes: Optional[str] = None) -> Optional[dict]:
-    if user_id not in user_libraries:
+def update_user_book(session: Session, username: str, book_id: int,
+                     user_book_update: UserBookUpdate) -> Optional[UserBook]:
+    user_book = get_user_book(session, username, book_id)
+    if not user_book:
         return None
 
-    for book_entry in user_libraries[user_id]:
-        if book_entry["book_id"] == book_id:
-            if is_read is not None:
-                book_entry["is_read"] = is_read
-            if rating is not None:
-                book_entry["rating"] = rating
-            if notes is not None:
-                book_entry["notes"] = notes
+    update_data = user_book_update.dict(exclude_unset=True)
 
-            book = get_book_by_id(session, book_id)
-            if book:
-                book_dict = book.dict()
-                book_dict.update(book_entry)
-                return book_dict
+    for key, value in update_data.items():
+        setattr(user_book, key, value)
 
-    return None
+    session.add(user_book)
+    session.commit()
+    session.refresh(user_book)
+
+    return user_book
 
 
-def remove_book_from_user_library(user_id: str, book_id: int) -> bool:
-    if user_id not in user_libraries:
+def remove_book_from_user_library(session: Session, username: str, book_id: int) -> bool:
+    user_book = get_user_book(session, username, book_id)
+    if not user_book:
         return False
 
-    for i, book_entry in enumerate(user_libraries[user_id]):
-        if book_entry["book_id"] == book_id:
-            user_libraries[user_id].pop(i)
-            return True
+    session.delete(user_book)
+    session.commit()
 
-    return False
+    return True
 
 
-def get_user_read_books(session: Session, user_id: str) -> List[dict]:
-    if user_id not in user_libraries:
+def get_user_read_books(session: Session, username: str) -> List[UserBook]:
+    user = get_user_by_username(session, username)
+    if not user:
         return []
 
-    read_books = []
-    for book_entry in user_libraries[user_id]:
-        if book_entry.get("is_read", False):
-            book = get_book_by_id(session, book_entry["book_id"])
-            if book:
-                book_dict = book.dict()
-                book_dict.update(book_entry)
-                read_books.append(book_dict)
-
-    return read_books
+    statement = select(UserBook).where(
+        (UserBook.user_id == user.id) &
+        (UserBook.is_read == True)
+    )
+    return session.exec(statement).all()
 
 
-def get_user_unread_books(session: Session, user_id: str) -> List[dict]:
-    if user_id not in user_libraries:
+def get_user_unread_books(session: Session, username: str) -> List[UserBook]:
+    user = get_user_by_username(session, username)
+    if not user:
         return []
 
-    unread_books = []
-    for book_entry in user_libraries[user_id]:
-        if not book_entry.get("is_read", False):
-            book = get_book_by_id(session, book_entry["book_id"])
-            if book:
-                book_dict = book.dict()
-                book_dict.update(book_entry)
-                unread_books.append(book_dict)
+    statement = select(UserBook).where(
+        (UserBook.user_id == user.id) &
+        (UserBook.is_read == False)
+    )
+    return session.exec(statement).all()
 
-    return unread_books
+
+def get_user_library_with_details(session: Session, username: str) -> List[dict]:
+    user_books = get_user_library(session, username)
+
+    result = []
+    for user_book in user_books:
+        book = get_book_by_id(session, user_book.book_id)
+        if book:
+            user_data = {
+                "id": user_book.id,
+                "book_id": user_book.book_id,
+                "is_read": user_book.is_read,
+                "rating": user_book.rating,
+                "notes": user_book.notes,
+                "added_at": user_book.added_at,
+                "book": {
+                    "id": book.id,
+                    "title": book.title,
+                    "author": book.author,
+                    "year": book.year,
+                    "genre": book.genre,
+                    "description": book.description,
+                    "is_available": book.is_available,
+                    "created_at": book.created_at
+                }
+            }
+            result.append(user_data)
+
+    return result

@@ -1,22 +1,17 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI
 from sqlmodel import Session, select
-import urllib.parse
+import uuid
 
 from database.connection import engine, create_db_and_tables
-from database.books import create_book
-from models.books import Book, BookCreate
+from database.books import create_book, get_or_create_user
+from models.books import Book, BookCreate, User, UserBook
 from routes.admin import router as admin_router
 from routes.user import router as user_router
 
-# Создаем таблицы при запуске
 create_db_and_tables()
 
 
-# Создаем тестовые книги при первом запуске
-def create_test_books():
-    """Создание тестовых книг при первом запуске"""
+def create_test_data():
     with Session(engine) as session:
         books = session.exec(select(Book)).all()
 
@@ -62,32 +57,50 @@ def create_test_books():
             for book_data in test_books:
                 create_book(session, book_data)
 
+            test_user = get_or_create_user(session, "test_user")
+
+            user_book1 = UserBook(
+                user_id=test_user.id,
+                book_id=1,
+                is_read=True,
+                rating=5
+            )
+
+            user_book2 = UserBook(
+                user_id=test_user.id,
+                book_id=2,
+                is_read=False
+            )
+
+            session.add_all([user_book1, user_book2])
             session.commit()
-            print("Тестовые книги созданы")
+
+            print("Тестовые данные созданы:")
+            print(f"- 5 книг")
+            print(f"- Пользователь: test_user")
+            print(f"- 2 книги в библиотеке пользователя")
 
 
 app = FastAPI(
     title="Библиотека API",
-    description="API для управления библиотекой книг",
+    description="API для управления библиотекой книг с базой данных",
     version="1.0.0"
 )
 
-# Подключаем маршруты
 app.include_router(admin_router)
 app.include_router(user_router)
 
 
 @app.on_event("startup")
 def on_startup():
-    """Создание тестовых данных при запуске приложения"""
-    create_test_books()
+    create_test_data()
 
 
 @app.get("/")
 async def root():
-    """Корневая страница с информацией об API"""
     return {
-        "message": "Библиотечное API",
+        "message": "Библиотечное API с базой данных",
+        "database": "SQLite (library.db)",
         "endpoints": {
             "admin": {
                 "GET /admin/books": "Получить все книги",
@@ -101,20 +114,31 @@ async def root():
                 "GET /user/books": "Просмотреть книги",
                 "GET /user/books/{id}": "Детали книги",
                 "GET /user/search/": "Поиск книг",
-                "GET /user/library": "Личная библиотека (user_id параметр)",
-                "POST /user/library/{book_id}": "Добавить в библиотеку",
-                "PATCH /user/library/{book_id}/read": "Отметить прочитанной",
+                "GET /user/library": "Личная библиотека (параметр: username)",
+                "POST /user/library": "Добавить в библиотеку (тело: book_id, username)",
+                "PATCH /user/library/{book_id}/read": "Отметить прочитанной (параметр: username)",
                 "PATCH /user/library/{book_id}/unread": "Отметить непрочитанной",
                 "DELETE /user/library/{book_id}": "Удалить из библиотеки"
             }
+        },
+        "test_user": {
+            "username": "test_user",
+            "password": "нет (только username)"
         }
     }
 
 
 @app.get("/health")
 async def health_check():
-    """Проверка работоспособности API"""
-    return {"status": "healthy", "message": "Библиотечная система работает!"}
+    return {"status": "healthy", "message": "Библиотечная система с БД работает!"}
+
+
+@app.get("/create-test-user")
+async def create_test_user_endpoint():
+    with Session(engine) as session:
+        username = f"user_{str(uuid.uuid4())[:8]}"
+        user = get_or_create_user(session, username)
+        return {"message": "Тестовый пользователь создан", "username": username}
 
 
 if __name__ == "__main__":

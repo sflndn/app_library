@@ -7,7 +7,7 @@ from database.books import (
     create_book, get_all_books, get_book_by_id,
     update_book, delete_book, search_books
 )
-from models.books import Book, BookCreate, BookUpdate, BookResponse
+from models.books import BookCreate, BookUpdate, BookResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
