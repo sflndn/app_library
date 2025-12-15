@@ -1,0 +1,50 @@
+{% extends "../base.html" %}
+
+{% block content %}
+<h1>Добавить новую книгу</h1>
+
+<div style="max-width: 600px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px;">
+    <form method="post">
+        <div style="margin-bottom: 1rem;">
+            <label>Название:</label>
+            <input type="text" name="title" value="{{ form_data.title if form_data else '' }}"
+                   required style="width: 100%; padding: 0.5rem;">
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <label>Автор:</label>
+            <input type="text" name="author" value="{{ form_data.author if form_data else '' }}"
+                   required style="width: 100%; padding: 0.5rem;">
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <label>Год издания:</label>
+            <input type="number" name="year" value="{{ form_data.year if form_data else '' }}"
+                   min="1000" max="2025" required style="width: 100%; padding: 0.5rem;">
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <label>Жанр:</label>
+            <input type="text" name="genre" value="{{ form_data.genre if form_data else '' }}"
+                   required style="width: 100%; padding: 0.5rem;">
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <label>Описание:</label>
+            <textarea name="description" style="width: 100%; padding: 0.5rem; height: 100px;">{{ form_data.description if form_data else '' }}</textarea>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <label>
+                <input type="checkbox" name="is_available" value="true" {% if not form_data or form_data.is_available %}checked{% endif %}>
+                Книга доступна
+            </label>
+        </div>
+
+        <div class="book-actions">
+            <button type="submit" class="btn btn-success">Добавить книгу</button>
+            <a href="/admin/books" class="btn btn-secondary">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

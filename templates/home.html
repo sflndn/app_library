@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Добро пожаловать в демонстрационную библиотеку!</h1>
+
+<div style="margin: 2rem 0;">
+    <h2>Как использовать:</h2>
+
+    <div style="background: white; padding: 2rem; border-radius: 8px; margin: 1rem 0;">
+        <h3>Для пользователей:</h3>
+        <ul>
+            <li>Нажмите "Сменить пользователя" чтобы создать нового пользователя</li>
+            <li>Перейдите в "Книги" чтобы просмотреть каталог</li>
+            <li>Добавляйте книги в "Мою библиотеку"</li>
+            <li>Отмечайте книги как прочитанные/непрочитанные</li>
+            <li>Ставьте оценки книгам</li>
+        </ul>
+
+        <div class="book-actions">
+            <a href="/switch-user" class="btn btn-warning">Создать нового пользователя</a>
+            <a href="/user/books" class="btn btn-primary">Перейти к книгам</a>
+        </div>
+    </div>
+
+    <div style="background: white; padding: 2rem; border-radius: 8px; margin: 1rem 0;">
+        <h3>Для администраторов:</h3>
+        <ul>
+            <li>Нажмите "Стать администратором" чтобы получить права</li>
+            <li>Перейдите в "Панель администратора"</li>
+            <li>Добавляйте, редактируйте и удаляйте книги</li>
+            <li>Управляйте каталогом библиотеки</li>
+        </ul>
+
+        <div class="book-actions">
+            <a href="/become-admin" class="btn btn-danger">Стать администратором</a>
+            <a href="/admin" class="btn btn-primary">Перейти в панель администратора</a>
+        </div>
+    </div>
+</div>
+
+<div style="margin-top: 3rem;">
+    <h3>Текущий статус:</h3>
+    <p><strong>ID пользователя:</strong> {{ user_id }}</p>
+    <p><strong>Права администратора:</strong>
+        {% if request.cookies.get("admin_token") == "admin123" %}
+            <span style="color: green;">Да</span>
+        {% else %}
+            <span style="color: red;">Нет</span>
+        {% endif %}
+    </p>
+</div>
+{% endblock %}

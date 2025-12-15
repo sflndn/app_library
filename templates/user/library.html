@@ -1,0 +1,50 @@
+{% extends "../base.html" %}
+
+{% block content %}
+<h1>Моя библиотека</h1>
+
+<p>Всего книг в библиотеке: {{ library|length }}</p>
+
+{% if library %}
+<div class="book-grid">
+    {% for book in library %}
+    <div class="book-card">
+        <h3>{{ book.title }}</h3>
+        <div class="book-meta">
+            <p><strong>Автор:</strong> {{ book.author }}</p>
+            <p><strong>Год:</strong> {{ book.year }}</p>
+            <p><strong>Жанр:</strong> {{ book.genre }}</p>
+            <p><strong>Статус:</strong>
+                {% if book.is_read %}
+                    <span style="color: green;">Прочитано</span>
+                {% else %}
+                    <span style="color: orange;">Не прочитано</span>
+                {% endif %}
+            </p>
+            {% if book.rating %}
+            <p><strong>Моя оценка:</strong> {{ book.rating }}/5</p>
+            {% endif %}
+        </div>
+
+        <div class="book-actions">
+            <a href="/user/books/{{ book.id }}" class="btn btn-primary btn-small">Подробнее</a>
+
+            {% if book.is_read %}
+                <a href="/user/library/{{ book.id }}/unread?user_id={{ user_id }}" class="btn btn-warning btn-small">Не прочитано</a>
+            {% else %}
+                <a href="/user/library/{{ book.id }}/read?user_id={{ user_id }}" class="btn btn-success btn-small">Прочитано</a>
+            {% endif %}
+
+            <a href="/user/library/{{ book.id }}/remove?user_id={{ user_id }}" class="btn btn-danger btn-small"
+               onclick="return confirm('Удалить книгу из библиотеки?')">Удалить</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div style="background: white; padding: 2rem; border-radius: 8px; text-align: center;">
+    <p>Ваша библиотека пуста.</p>
+    <a href="/user/books" class="btn btn-primary">Перейти к каталогу книг</a>
+</div>
+{% endif %}
+{% endblock %}

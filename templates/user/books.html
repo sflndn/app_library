@@ -1,0 +1,43 @@
+{% extends "../base.html" %}
+
+{% block content %}
+<h1>Каталог книг</h1>
+
+<p>Всего книг: {{ books|length }}</p>
+
+<div class="book-grid">
+    {% for book in books %}
+    <div class="book-card">
+        <h3>{{ book.title }}</h3>
+        <div class="book-meta">
+            <p><strong>Автор:</strong> {{ book.author }}</p>
+            <p><strong>Год:</strong> {{ book.year }}</p>
+            <p><strong>Жанр:</strong> {{ book.genre }}</p>
+        </div>
+
+        {% if book.description %}
+        <div class="book-description">
+            {{ book.description[:100] }}{% if book.description|length > 100 %}...{% endif %}
+        </div>
+        {% endif %}
+
+        <div class="book-actions">
+            <a href="/user/books/{{ book.id }}" class="btn btn-primary btn-small">Подробнее</a>
+
+            {% if book.in_library %}
+                <span class="btn btn-success btn-small" style="cursor: default;">В библиотеке</span>
+                <a href="/user/library/{{ book.id }}/remove" class="btn btn-danger btn-small">Удалить</a>
+            {% else %}
+                <a href="/user/library/add/{{ book.id }}?user_id={{ user_id }}" class="btn btn-success btn-small">Добавить</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not books %}
+<div style="background: white; padding: 2rem; border-radius: 8px; text-align: center;">
+    <p>Книг пока нет в каталоге.</p>
+</div>
+{% endif %}
+{% endblock %}

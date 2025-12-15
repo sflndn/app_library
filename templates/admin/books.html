@@ -1,0 +1,50 @@
+{% extends "../base.html" %}
+
+{% block content %}
+<h1>Управление книгами</h1>
+
+<div class="book-actions" style="margin-bottom: 2rem;">
+    <a href="/admin/books/add" class="btn btn-success">Добавить новую книгу</a>
+    <a href="/admin" class="btn btn-secondary">Назад к панели</a>
+</div>
+
+<div class="book-grid">
+    {% for book in books %}
+    <div class="book-card">
+        <h3>{{ book.title }}</h3>
+        <div class="book-meta">
+            <p><strong>Автор:</strong> {{ book.author }}</p>
+            <p><strong>Год:</strong> {{ book.year }}</p>
+            <p><strong>Жанр:</strong> {{ book.genre }}</p>
+            <p><strong>Статус:</strong>
+                {% if book.is_available %}
+                    <span style="color: green;">Доступна</span>
+                {% else %}
+                    <span style="color: red;">Недоступна</span>
+                {% endif %}
+            </p>
+        </div>
+
+        {% if book.description %}
+        <div class="book-description">
+            {{ book.description[:100] }}{% if book.description|length > 100 %}...{% endif %}
+        </div>
+        {% endif %}
+
+        <div class="book-actions">
+            <a href="/admin/books/{{ book.id }}/edit" class="btn btn-primary btn-small">Редактировать</a>
+            <a href="/admin/books/{{ book.id }}/delete" class="btn btn-danger btn-small"
+               onclick="return confirm('Вы уверены, что хотите удалить эту книгу?')">Удалить</a>
+            <a href="/user/books/{{ book.id }}" class="btn btn-secondary btn-small">Просмотреть</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not books %}
+<div style="background: white; padding: 2rem; border-radius: 8px; text-align: center;">
+    <p>Книг пока нет. Добавьте первую книгу!</p>
+    <a href="/admin/books/add" class="btn btn-success">Добавить книгу</a>
+</div>
+{% endif %}
+{% endblock %}

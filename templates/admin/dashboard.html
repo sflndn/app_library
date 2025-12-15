@@ -1,0 +1,24 @@
+{% extends "../base.html" %}
+
+{% block content %}
+<h1>Панель администратора</h1>
+
+<div style="margin: 2rem 0;">
+    <div style="background: white; padding: 2rem; border-radius: 8px; margin: 1rem 0;">
+        <h2>Управление библиотекой</h2>
+        <p>Вы можете управлять книгами в библиотеке:</p>
+        
+        <div class="book-actions">
+            <a href="/admin/books" class="btn btn-primary">Просмотреть все книги</a>
+            <a href="/admin/books/add" class="btn btn-success">Добавить новую книгу</a>
+            <a href="/" class="btn btn-secondary">Вернуться на главную</a>
+        </div>
+    </div>
+    
+    <div style="background: white; padding: 2rem; border-radius: 8px; margin: 1rem 0;">
+        <h3>Текущие права:</h3>
+        <p><strong>Статус:</strong> Администратор</p>
+        <p><strong>Доступ:</strong> Полный доступ ко всем функциям управления</p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "../base.html" %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <div style="background: white; padding: 2rem; border-radius: 8px;">
+        <h1>{{ book.title }}</h1>
+
+        <div style="margin: 1rem 0;">
+            <p><strong>Автор:</strong> {{ book.author }}</p>
+            <p><strong>Год издания:</strong> {{ book.year }}</p>
+            <p><strong>Жанр:</strong> {{ book.genre }}</p>
+            <p><strong>Статус доступности:</strong>
+                {% if book.is_available %}
+                    <span style="color: green;">Доступна</span>
+                {% else %}
+                    <span style="color: red;">Недоступна</span>
+                {% endif %}
+            </p>
+        </div>
+
+        {% if book.description %}
+        <div style="margin: 1.5rem 0; padding: 1rem; background: #f8f9fa; border-radius: 6px;">
+            <h3>Описание:</h3>
+            <p>{{ book.description }}</p>
+        </div>
+        {% endif %}
+
+        <div class="book-actions">
+            {% if user_book %}
+                <p style="color: green; margin-bottom: 1rem;">✓ Эта книга уже в вашей библиотеке</p>
+
+                {% if user_book.is_read %}
+                    <a href="/user/library/{{ book.id }}/unread?user_id={{ user_id }}" class="btn btn-warning">Отметить как непрочитанную</a>
+                {% else %}
+                    <a href="/user/library/{{ book.id }}/read?user_id={{ user_id }}" class="btn btn-success">Отметить как прочитанную</a>
+                {% endif %}
+
+                <a href="/user/library/{{ book.id }}/remove?user_id={{ user_id }}" class="btn btn-danger"
+                   onclick="return confirm('Удалить книгу из библиотеки?')">Удалить из библиотеки</a>
+            {% else %}
+                <a href="/user/library/add/{{ book.id }}?user_id={{ user_id }}" class="btn btn-success">Добавить в мою библиотеку</a>
+            {% endif %}
+
+            <a href="/user/books" class="btn btn-secondary">Назад к каталогу</a>
+            <a href="/user/library" class="btn btn-primary">Перейти в мою библиотеку</a>
+        </div>
+
+        {% if user_book %}
+        <div style="margin-top: 2rem; padding: 1rem; background: #e8f4fd; border-radius: 6px;">
+            <h3>Моя информация о книге:</h3>
+            <p><strong>Статус:</strong>
+                {% if user_book.is_read %}
+                    Прочитана
+                {% else %}
+                    Не прочитана
+                {% endif %}
+            </p>
+
+            {% if user_book.rating %}
+            <p><strong>Моя оценка:</strong> {{ user_book.rating }}/5</p>
+            {% endif %}
+
+            {% if user_book.notes %}
+            <p><strong>Мои заметки:</strong> {{ user_book.notes }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
